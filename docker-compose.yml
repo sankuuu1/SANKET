@@ -1,0 +1,70 @@
+# Docker Compose configuration for Microstructural Analysis Toolkit
+version: '3.8'
+
+services:
+  # Main web application
+  microstructure-analyzer:
+    build: .
+    container_name: microstructure-analyzer
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./temp:/app/temp
+    environment:
+      - STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Jupyter notebook for development
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: microstructure-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app
+      - ./notebooks:/app/notebooks
+      - ./data:/app/data
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=''
+    restart: unless-stopped
+    profiles:
+      - development
+
+  # Optional: API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: microstructure-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    environment:
+      - API_DEBUG=false
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    restart: unless-stopped
+    profiles:
+      - api
+
+volumes:
+  uploads:
+  outputs:
+  temp:
+  notebooks:
+  data:

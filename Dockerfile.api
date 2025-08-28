@@ -1,0 +1,38 @@
+# Dockerfile for API service
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set work directory
+WORKDIR /app
+
+# Copy requirements and install dependencies
+COPY requirements-docker.txt requirements.txt
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy application files
+COPY microstructural_analyzer.py .
+COPY advanced_features.py .
+COPY api_server.py .
+
+# Create directories
+RUN mkdir -p uploads outputs temp
+
+# Expose port
+EXPOSE 8000
+
+# Run API server
+CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
